@@ -13,12 +13,13 @@ models = ["pix2pix","Gan","classifier","conditionalGan","cycleGan"]
 
 # basic options
 opt = {}
-opt["extension"] = ".jpg"
+opt["extension"] = ".png"
 opt["size"] = 256 # in priority 2**n
-opt["channels"] = 1
-opt["crop"] = True
+opt["channels"] = 3
+opt["crop"] = False
 opt["dataAug"] = True
 opt["dataMult"] = 30
+opt["Crop"] = False
 assert len(sys.argv) > 1 , "You did not specify a working directory."
 opt["dir"] = sys.argv[1]
 opt["name"] = "pix2pix"
