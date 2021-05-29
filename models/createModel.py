@@ -33,7 +33,7 @@ def trainModel(opt,model) :
 
     if opt["name"] == "pix2pix" :
         print("Training the model")
-        model.train(n_epochs=10, n_batch=1)
+        model.train(n_epochs=100, n_batch=1)
 
     if opt["name"] == "cycleGan" : 
         print("Training the model")

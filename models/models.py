@@ -1,5 +1,5 @@
 import tensorflow as tf
-from models.modelHelpers import decoder_block,define_encoder_block,resnet_block
+from models.modelHelpers import decoder_block,define_encoder_block,resnet_block,SSIMLoss
 from keras.models import Model
 from keras.models import load_model
 import numpy as np
@@ -323,12 +323,12 @@ class Pix2pix :
             # update discriminator for generated samples
             d_loss2 = self.discriminator.train_on_batch([X_realA, X_fakeB], y_fake)
             # update the generator
-            g_loss, _, _ = self.gan.train_on_batch(X_realA, [y_real, X_realB])
+            g_loss, *_ = self.gan.train_on_batch(X_realA, [y_real, X_realB,X_realB])
             # summarize performance
             if i % 10 == 0 :
                 print('>%d, d1[%.3f] d2[%.3f] g[%.3f]' % (i+1, d_loss1, d_loss2, g_loss))
             # summarize model performance
-            if (i+1) % (bat_per_epo * 10) == 0:
+            if (i+1) % (bat_per_epo * 5) == 0:
                 self.summarize_performance(i)
 
     def predict(self) :
@@ -429,10 +429,10 @@ class Pix2pix :
         # connect the source input and generator output to the discriminator input
         dis_out = d_model([in_src, gen_out])
         # src image as input, generated image and classification output
-        model = Model(in_src, [dis_out, gen_out])
+        model = Model(in_src, [dis_out, gen_out,gen_out])
         # compile model
         opt = Adam(lr=0.0002, beta_1=0.5)
-        model.compile(loss=['binary_crossentropy', 'mae'], optimizer=opt, loss_weights=[1,40])
+        model.compile(loss=['binary_crossentropy', 'mae',SSIMLoss], optimizer=opt, loss_weights=[1,16*0.4,84*0.4])
         self.gan = model
 
 # this model aims at performing the translation of a kind of pictures onto another (for instance all the zebras will become horses)
@@ -569,12 +569,12 @@ class CycleGAN :
             X_fakeA = self.update_image_pool(poolA, X_fakeA)
             X_fakeB = self.update_image_pool(poolB, X_fakeB)
             # update generator B->A via adversarial and cycle loss
-            g_loss2, _, _, _, _  = self.compositeB.train_on_batch([X_realB, X_realA], [y_realA, X_realA, X_realB, X_realA])
+            g_loss2, *_ = self.compositeB.train_on_batch([X_realB, X_realA], [y_realA, X_realA,X_realA, X_realB, X_realA])
             # update discriminator for A -> [real/fake]
             dA_loss1 = self.discriminatorA.train_on_batch(X_realA, y_realA)
             dA_loss2 = self.discriminatorA.train_on_batch(X_fakeA, y_fakeA)
             # update generator A->B via adversarial and cycle loss
-            g_loss1, _, _, _, _ = self.compositeA.train_on_batch([X_realA, X_realB], [y_realB, X_realB, X_realA, X_realB])
+            g_loss1, *_ = self.compositeA.train_on_batch([X_realA, X_realB], [y_realB, X_realB,X_realB, X_realA, X_realB])
             # update discriminator for B -> [real/fake]
             dB_loss1 = self.discriminatorB.train_on_batch(X_realB, y_realB)
             dB_loss2 = self.discriminatorB.train_on_batch(X_fakeB, y_fakeB)
@@ -676,11 +676,11 @@ class CycleGAN :
         gen2_out = g_model_2(input_id)
         output_b = g_model_1(gen2_out)
         # define model graph
-        model = Model([input_gen, input_id], [output_d, output_id, output_f, output_b])
+        model = Model([input_gen, input_id], [output_d, output_id,output_id, output_f, output_b])
         # define optimization algorithm configuration
         opt = Adam(lr=0.0002, beta_1=0.5)
         # compile model with weighting of least squares loss and L1 loss
-        model.compile(loss=['mse', 'mae', 'mae', 'mae'], loss_weights=[1, 5, 10, 10], optimizer=opt)
+        model.compile(loss=['mse', 'mae',SSIMLoss, 'mae', 'mae'], loss_weights=[1, 5,10, 10, 10], optimizer=opt)
         return model
 
     def defineDiscriminatorCycle(self,image_shape : tuple) -> Model:

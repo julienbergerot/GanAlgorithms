@@ -47,3 +47,6 @@ def resnet_block(n_filters : int, input_layer : tf.Tensor) -> tf.Tensor:
 	# concatenate merge channel-wise with input layer
 	g = Concatenate()([g, input_layer])
 	return g
+
+def SSIMLoss(y_true, y_pred):
+  return 1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, 2.0))
